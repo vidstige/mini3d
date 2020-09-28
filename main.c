@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
 
 void clear(uint32_t *buffer, uint32_t color) {
     size_t i;
@@ -9,7 +10,9 @@ void clear(uint32_t *buffer, uint32_t color) {
     }
 }
 
-typedef struct { float x, y, z; } vec3;
+typedef struct { int x, y; } vec2i;
+
+typedef struct { float x, y, z; } vec3f;
 typedef struct {
     float m[9];
 } matrix3;
@@ -20,18 +23,18 @@ void identity(matrix3 *matrix) {
     matrix->m[1] = 0; matrix->m[4] = 1; matrix->m[7] = 0;
     matrix->m[2] = 0; matrix->m[5] = 0; matrix->m[8] = 1;
 }
-vec3 row(matrix3* matrix, int i) {
-    vec3 out;
+vec3f row(matrix3* matrix, int i) {
+    vec3f out;
     out.x = matrix->m[i]; out.y = matrix->m[i+3*1]; out.z = matrix->m[i+3*2];
     return out;    
 }
-vec3 column(matrix3* matrix, int i) {
-    vec3 out;
+vec3f column(matrix3* matrix, int i) {
+    vec3f out;
     out.x = matrix->m[i*3]; out.y = matrix->m[i*3+1]; out.z = matrix->m[i*3+2];
     return out;
 }
 
-float dot(vec3 a, vec3 b) {
+float dot(vec3f a, vec3f b) {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
@@ -43,33 +46,74 @@ void multiply(matrix3 *a, matrix3 *b, matrix3 *out) {
         }
     }
 }
-vec3 transform(matrix3 *m, vec3 v) {
-    vec3 out;
+vec3f add(vec3f a, vec3f b) {
+    vec3f out;
+    out.x = a.x + b.x; out.y = a.y + b.y; out.z = a.z + b.z;
+    return out;
+}
+vec3f transform(matrix3 *m, vec3f t, vec3f v) {
+    vec3f out;
     out.x = dot(row(m, 0), v);
     out.y = dot(row(m, 1), v);
     out.z = dot(row(m, 2), v);
-    return out;
+    return add(out, t);
 }
 
-void pixel(uint32_t *buffer, int x, int y, uint32_t color) {
+void pixel(uint32_t *buffer, vec2i screen, uint32_t color) {
+    int x = screen.x;
+    int y = screen.y;
     if (x >= 0 && x < 320 && y >= 0 && y < 200) {
         buffer[x + y * 320] = color;
     }
 }
 
-vec3 points[100];
+void rotate_x(matrix3 *matrix, float theta) {
+    float c = cos(theta);
+    float s = sin(theta);
+    matrix->m[0] = 1; matrix->m[3] = 0; matrix->m[6] = 0;
+    matrix->m[1] = 0; matrix->m[4] = c; matrix->m[7] = -s;
+    matrix->m[2] = 0; matrix->m[5] = s; matrix->m[8] = c;
+}
+void rotate_y(matrix3 *matrix, float theta) {
+    float c = cos(theta);
+    float s = sin(theta);
+    matrix->m[0] = c; matrix->m[3] = 0; matrix->m[6] = -s;
+    matrix->m[1] = 0; matrix->m[4] = 1; matrix->m[7] = 0;
+    matrix->m[2] = s; matrix->m[5] = 0; matrix->m[8] = c;
+}
+void rotate_z(matrix3 *matrix, float theta) {
+    float c = cos(theta);
+    float s = sin(theta);
+    matrix->m[0] = c; matrix->m[3] = -s; matrix->m[6] = 0;
+    matrix->m[1] = s; matrix->m[4] =  c; matrix->m[7] = 0;
+    matrix->m[2] = 0; matrix->m[5] =  0; matrix->m[8] = 1;
+}
+
+vec2i project(vec3f v, int w, int h) {
+    vec2i out;
+    float fov = 0.01;
+    out.x = w / 2 + (int)(v.x / (fov * v.z));
+    out.y = h / 2 + (int)(v.y / (fov * v.z));
+    return out;
+}
+
+
+vec3f points[100];
 void draw(uint32_t *buffer, float t) {
-    int i, sx, sy;
+    float omega = 0.02;
+    int i;
+    vec2i screen;
     matrix3 m;
-    vec3 tmp;
-    identity(&m);
+    vec3f point, translation;
+    rotate_y(&m, omega * t);
+    translation.x = 0; translation.y = 0; translation.z = 120;
     for (i = 0; i < 100; i++) {
-        tmp = transform(&m, points[i]);
-        sx = 160 + (int)tmp.x;
-        sy = 100 + (int)tmp.y;
-        pixel(buffer, sx, sy, 0xffffffff);
+        point = transform(&m, translation, points[i]);
+        screen = project(point, 320, 200);
+        pixel(buffer, screen, 0xffffffff);
     }
 }
+
 
 float randf() {
     return (float)rand() / (float)(RAND_MAX);
@@ -92,10 +136,9 @@ int main() {
 
     initialize();
 
-    while (1) {
+    for (t = 0; t < M_PI / 0.02; t += 1.f) {
         clear(buffer, 0xff222222);
         draw(buffer, t);
         fwrite(buffer, sizeof(uint32_t), 320 * 200, stdout);
-        t += dt;
     }
 }

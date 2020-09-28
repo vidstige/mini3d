@@ -1,2 +1,2 @@
 mini3d: main.c
-	gcc main.c -o mini3d
+	gcc main.c -lm -o mini3d
