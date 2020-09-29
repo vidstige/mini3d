@@ -9,6 +9,10 @@ typedef struct { float x, y, z, w; } vec4f;
 typedef struct { float m[9]; } matrix3;
 typedef struct { float m[16]; } matrix4f;
 
+vec3f vec3f_subtract(vec3f a, vec3f b);
+float vec3f_dot(vec3f a, vec3f b);
+vec3f cross(vec3f a, vec3f b);
+
 vec3f make_vec3f(float x, float y, float z);
 
 void make_identity(matrix4f *matrix);

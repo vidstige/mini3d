@@ -6,19 +6,12 @@
 #include "linalg.h"
 #include "mesh.h"
 #include "io.h"
+#include "render.h"
 
 void clear(uint32_t *buffer, uint32_t color) {
     size_t i;
     for (i = 0; i < 320 * 200; i++) {
         buffer[i] = color;
-    }
-}
-
-void pixel(uint32_t *buffer, vec2i screen, uint32_t color) {
-    int x = screen.x;
-    int y = screen.y;
-    if (x >= 0 && x < 320 && y >= 0 && y < 200) {
-        buffer[x + y * 320] = color;
     }
 }
 
@@ -67,39 +60,47 @@ vec3f divide(vec4f v) {
     return make_vec3f(v.x / v.w, v.y / v.w, v.z / v.w);
 }
 
+vec4f as_homogenous(vec3f v) {
+    vec4f out;
+    out.x = v.x; out.y = v.y; out.z = v.z; out.w = 1.f;
+    return out;
+}
+
 vec4f points[100];
-void draw(uint32_t *buffer, float t) {
+void draw(uint32_t *buffer, mesh* mesh, float t) {
     float omega = 0.02f;
     int i;
     matrix4f tmp, mvp, projection;
     vec4f clip;
-    vec3f screen;
-    vec2i screen_i;
+    vec3f ndc, screen;
+    face face;
+    vec3f *transformed = malloc(sizeof(vec3f) * mesh->n_vertices);
 
+    // compute mvp matrix
     make_identity(&mvp);
     rotate_y(&tmp, omega * t); multiply(&tmp, &mvp, &mvp);
     make_translation(&tmp, make_vec3f(0.f, 0.f, 4.f)); multiply(&tmp, &mvp, &mvp);
     make_projection(&tmp, 90, 320.f/200.f, 0.1, 5); multiply(&tmp, &mvp, &mvp);
 
-    for (i = 0; i < 100; i++) {
-        clip = transform_vector(&mvp, points[i]);
-        screen = divide(clip);
-        screen_i.x = 160 + (int)(160.f * screen.x);
-        screen_i.y = 100 - (int)(100.f  *screen.y);
-        pixel(buffer, screen_i, 0xffffffff);
-    }
-}
+    // Transform vertices
+    for (i = 0; i < mesh->n_vertices; i++) {
+        clip = transform_vector(&mvp, as_homogenous(mesh->vertices[i]));
+        ndc = divide(clip);
+        screen.x = 160 + (int)(160.f * ndc.x);
+        screen.y = 100 - (int)(100.f * ndc.y);
+        screen.z = ndc.z;
+        transformed[i] = screen;
 
-/*
-void draw_triangle(uint32_t *buffer, uint32_t color) {
-}
-
-void draw_mesh(uint32_t *buffer, mesh mesh) {
-    int i;
-    for (int i = 0; i < mesh.n_faces; i++) {
-        draw_triangle(buffer, );
+        pixel(buffer, (int)screen.x, (int)screen.y, 0xffffffff);
     }
-}*/
+
+    for (i = 0; i < mesh->n_faces; i++) {
+        face = mesh->faces[i];
+        render_triangle(buffer, NULL, transformed[face.i0], transformed[face.i1], transformed[face.i2]);
+    }
+
+    free(transformed);
+}
 
 float randf() {
     return (float)rand() / (float)(RAND_MAX);
@@ -126,14 +127,12 @@ int main() {
     mesh = load_obj(f);
     fclose(f);
 
-    //draw_mesh(buffer, mesh);
-
-    destroy_mesh(&mesh);
-
     initialize();
     for (t = 0; t < 2 * M_PI / 0.02; t += 1.f) {
         clear(buffer, 0xff222222);
-        draw(buffer, t);
+        draw(buffer, &mesh, t);
         fwrite(buffer, sizeof(uint32_t), 320 * 200, stdout);
     }
+
+    destroy_mesh(&mesh);
 }

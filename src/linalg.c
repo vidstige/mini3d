@@ -5,6 +5,19 @@ vec3f make_vec3f(float x, float y, float z) {
     out.x = x; out.y = y; out.z = z;
     return out;
 }
+vec3f vec3f_subtract(vec3f a, vec3f b) {
+    return make_vec3f(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+float vec3f_dot(vec3f a, vec3f b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+vec3f cross(vec3f a, vec3f b) {
+    return make_vec3f(
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x
+    );
+}
 
 void make_identity(matrix4f *matrix) {
     matrix->m[0] = 1; matrix->m[4] = 0; matrix->m[ 8] = 0; matrix->m[12] = 0;

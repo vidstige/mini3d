@@ -18,6 +18,7 @@ mesh load_obj(FILE* file)
             vertices[vertices_i++] = vertex;
         }
         if (sscanf(line, "f %lu/%*d/%*d %lu/%*d/%*d %lu/%*d/%*d\n", &face.i0, &face.i1, &face.i2)) {
+            face.i0--; face.i1--; face.i2--;            
             faces[faces_i++] = face;
         }
     }
