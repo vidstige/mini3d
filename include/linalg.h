@@ -11,12 +11,11 @@ typedef struct { float m[16]; } matrix4f;
 
 vec3f make_vec3f(float x, float y, float z);
 
-void identity(matrix3 *matrix);
-vec3f row(matrix3* matrix, int i);
-vec3f column(matrix3* matrix, int i);
-float dot(vec3f a, vec3f b);
-void multiply(matrix3 *a, matrix3 *b, matrix3 *out);
+void make_identity(matrix4f *matrix);
+void make_translation(matrix4f *matrix, vec3f t);
+float dot(vec4f a, vec4f b);
+void multiply(matrix4f *a, matrix4f *b, matrix4f *out);
 vec3f add(vec3f a, vec3f b);
-vec3f transform(matrix3 *m, vec3f t, vec3f v);
+vec4f transform_vector(matrix4f *m, vec4f v);
 
 #endif

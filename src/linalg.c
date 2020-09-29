@@ -6,43 +6,57 @@ vec3f make_vec3f(float x, float y, float z) {
     return out;
 }
 
-void identity(matrix3 *matrix) {
-    matrix->m[0] = 1; matrix->m[3] = 0; matrix->m[6] = 0;
-    matrix->m[1] = 0; matrix->m[4] = 1; matrix->m[7] = 0;
-    matrix->m[2] = 0; matrix->m[5] = 0; matrix->m[8] = 1;
+void make_identity(matrix4f *matrix) {
+    matrix->m[0] = 1; matrix->m[4] = 0; matrix->m[ 8] = 0; matrix->m[12] = 0;
+    matrix->m[1] = 0; matrix->m[5] = 1; matrix->m[ 9] = 0; matrix->m[13] = 0;
+    matrix->m[2] = 0; matrix->m[6] = 0; matrix->m[10] = 1; matrix->m[14] = 0;
+    matrix->m[3] = 0; matrix->m[7] = 0; matrix->m[11] = 0; matrix->m[15] = 1;
 }
-vec3f row(matrix3* matrix, int i) {
-    vec3f out;
-    out.x = matrix->m[i]; out.y = matrix->m[i+3*1]; out.z = matrix->m[i+3*2];
+
+void make_translation(matrix4f *matrix, vec3f t) {
+    matrix->m[0] = 1; matrix->m[4] = 0; matrix->m[ 8] = 0; matrix->m[12] = t.x;
+    matrix->m[1] = 0; matrix->m[5] = 1; matrix->m[ 9] = 0; matrix->m[13] = t.y;
+    matrix->m[2] = 0; matrix->m[6] = 0; matrix->m[10] = 1; matrix->m[14] = t.z;
+    matrix->m[3] = 0; matrix->m[7] = 0; matrix->m[11] = 0; matrix->m[15] = 1;
+}
+
+vec4f row(matrix4f* matrix, int i) {
+    vec4f out;
+    out.x = matrix->m[i]; out.y = matrix->m[i + 4 * 1]; out.z = matrix->m[i + 4 * 2]; out.w = matrix->m[i + 4 * 3]; 
     return out;    
 }
-vec3f column(matrix3* matrix, int i) {
-    vec3f out;
-    out.x = matrix->m[i*3]; out.y = matrix->m[i*3+1]; out.z = matrix->m[i*3+2];
+vec4f column(matrix4f* matrix, int i) {
+    vec4f out;
+    out.x = matrix->m[i * 4]; out.y = matrix->m[i * 4 + 1]; out.z = matrix->m[i * 4 + 2]; out.w = matrix->m[i * 4 + 3];
     return out;
 }
 
-float dot(vec3f a, vec3f b) {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
+float dot(vec4f a, vec4f b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
 
-void multiply(matrix3 *a, matrix3 *b, matrix3 *out) {
+void multiply(matrix4f *a, matrix4f *b, matrix4f *out) {
     int i, j;
-    for (i = 0; i < 3; i++) {
-        for (j = 0; j < 3; j++) {
-            out->m[j*3 + i] = dot(row(a, i), column(b, j));
+    vec4f tmp;
+    for (j = 0; j < 4; j++) {
+        tmp = column(b, j);
+        for (i = 0; i < 4; i++) {
+            out->m[j * 4 + i] = dot(row(a, i), tmp);
         }
     }
 }
+
 vec3f add(vec3f a, vec3f b) {
     vec3f out;
     out.x = a.x + b.x; out.y = a.y + b.y; out.z = a.z + b.z;
     return out;
 }
-vec3f transform(matrix3 *m, vec3f t, vec3f v) {
-    vec3f out;
+
+vec4f transform_vector(matrix4f *m, vec4f v) {
+    vec4f out;
     out.x = dot(row(m, 0), v);
     out.y = dot(row(m, 1), v);
     out.z = dot(row(m, 2), v);
-    return add(out, t);
+    out.w = dot(row(m, 3), v);
+    return out;
 }
