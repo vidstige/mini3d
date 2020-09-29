@@ -3,20 +3,16 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "linalg.h"
+#include "mesh.h"
+#include "io.h"
+
 void clear(uint32_t *buffer, uint32_t color) {
     size_t i;
     for (i = 0; i < 320 * 200; i++) {
         buffer[i] = color;
     }
 }
-
-typedef struct { int x, y; } vec2i;
-
-typedef struct { float x, y, z; } vec3f;
-typedef struct {
-    float m[9];
-} matrix3;
-
 
 void identity(matrix3 *matrix) {
     matrix->m[0] = 1; matrix->m[3] = 0; matrix->m[6] = 0;
@@ -97,7 +93,6 @@ vec2i project(vec3f v, int w, int h) {
     return out;
 }
 
-
 vec3f points[100];
 void draw(uint32_t *buffer, float t) {
     float omega = 0.02;
@@ -114,6 +109,16 @@ void draw(uint32_t *buffer, float t) {
     }
 }
 
+/*
+void draw_triangle(uint32_t *buffer, uint32_t color) {
+}
+
+void draw_mesh(uint32_t *buffer, mesh mesh) {
+    int i;
+    for (int i = 0; i < mesh.n_faces; i++) {
+        draw_triangle(buffer, );
+    }
+}*/
 
 float randf() {
     return (float)rand() / (float)(RAND_MAX);
@@ -133,9 +138,17 @@ int main() {
     uint32_t buffer[320 * 200];
     float t = 0;
     float dt = 1;
+    mesh mesh;
+
+    FILE* f = fopen("meshes/cube.obj", "r");
+    mesh = load_obj(f);
+    fclose(f);
+
+    //draw_mesh(buffer, mesh);
+
+    destroy_mesh(&mesh);
 
     initialize();
-
     for (t = 0; t < M_PI / 0.02; t += 1.f) {
         clear(buffer, 0xff222222);
         draw(buffer, t);
