@@ -6,6 +6,6 @@
 #include "linalg.h"
 
 void pixel(uint32_t *buffer, int x, int y, uint32_t color);
-void render_triangle(uint32_t *buffer, float* z_buffer, vec3f a, vec3f b, vec3f c);
+void render_triangle(uint32_t *buffer, uint32_t color, vec3f v0, vec3f v1, vec3f v2);
 
 #endif

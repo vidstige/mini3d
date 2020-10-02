@@ -41,7 +41,7 @@ bool contains_point(vec3f v0, vec3f v1, vec3f v2, vec3f p) {
     return alpha >= 0 && beta >= 0 && gamma >= 0; 
 }
 
-void render_triangle(uint32_t *buffer, float* z_buffer, vec3f v0, vec3f v1, vec3f v2) {
+void render_triangle(uint32_t *buffer, uint32_t color, vec3f v0, vec3f v1, vec3f v2) {
     bbox3f bbox;
     int x, y;
     init_bbox(&bbox);
@@ -51,7 +51,7 @@ void render_triangle(uint32_t *buffer, float* z_buffer, vec3f v0, vec3f v1, vec3
     for (y = (int)bbox.min.y; y < (int)bbox.max.y; y++) {
         for (x = (int)bbox.min.x; x < (int)bbox.max.x; x++) {
             if (contains_point(v0, v1, v2, make_vec3f(x, y, 1))) {
-                pixel(buffer, x, y, 0xffffffff);
+                pixel(buffer, x, y, color);
             }
         }
     }

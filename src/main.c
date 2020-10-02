@@ -66,21 +66,56 @@ vec4f as_homogenous(vec3f v) {
     return out;
 }
 
+// normal of triangle
+vec4f normal_of_triangle(vec3f v0, vec3f v1, vec3f v2) {
+    vec3f normal = normalized3f(cross(vec3f_subtract(v2, v0), vec3f_subtract(v1, v0)));
+    return make_vec4f(normal.x, normal.y, normal.z, 0);
+}
+
+uint32_t rgb(uint32_t r, uint32_t g, uint32_t b) {
+    const uint32_t alpha = 0xff;
+    return alpha << 24 | (r & 0xff) << 16 | (g & 0xff) << 8 | (b & 0xff);
+}
+
+uint32_t rgbf(float r, float g, float b) {
+    return rgb((uint32_t)(r * 255), (uint32_t)(g * 255), (uint32_t)(b * 255));
+}
+
+void print_vec3f(FILE* file, const char* label, vec3f v) {
+    fprintf(file, "%s: %f %f %f\n", label, v.x, v.y, v.z);
+}
+void print_vec4f(FILE* file, const char* label, vec4f v) {
+    fprintf(file, "%s: %f %f %f %f\n", label, v.x, v.y, v.z, v.w);
+}
+
 vec4f points[100];
 void draw(uint32_t *buffer, mesh* mesh, float t) {
-    float omega = 0.02f;
+    float omega = 0.02f, intensity;
     int i;
-    matrix4f tmp, mvp, projection;
+    matrix4f tmp, mv, mvp, projection, nt;
     vec4f clip;
     vec3f ndc, screen;
     face face;
+    vec4f normal;
     vec3f *transformed = malloc(sizeof(vec3f) * mesh->n_vertices);
+    vec4f light = make_vec4f(0, 0, -1, 0);
+
+    // Compute face normals
+    vec4f *normals = malloc(sizeof(vec4f) * mesh->n_faces);
+    for (i = 0; i < mesh->n_faces; i++) {
+        face = mesh->faces[i];
+        normals[i] = normal_of_triangle(mesh->vertices[face.i0], mesh->vertices[face.i1], mesh->vertices[face.i2]);
+    }
 
     // compute mvp matrix
     make_identity(&mvp);
     rotate_y(&tmp, omega * t); multiply(&tmp, &mvp, &mvp);
-    make_translation(&tmp, make_vec3f(0.f, 0.f, 4.f)); multiply(&tmp, &mvp, &mvp);
-    make_projection(&tmp, 90, 320.f/200.f, 0.1, 5); multiply(&tmp, &mvp, &mvp);
+    make_translation(&tmp, make_vec3f(0.f, 0.f, -4.f)); multiply(&tmp, &mvp, &mv);
+    make_projection(&tmp, 90, 320.f/200.f, 0.1, 5); multiply(&tmp, &mv, &mvp);
+
+    // compute normal transform
+    invert4f(&mv, &tmp);
+    nt = transpose4f(&tmp);
 
     // Transform vertices
     for (i = 0; i < mesh->n_vertices; i++) {
@@ -90,15 +125,20 @@ void draw(uint32_t *buffer, mesh* mesh, float t) {
         screen.y = 100 - (int)(100.f * ndc.y);
         screen.z = ndc.z;
         transformed[i] = screen;
-
-        pixel(buffer, (int)screen.x, (int)screen.y, 0xffffffff);
     }
 
     for (i = 0; i < mesh->n_faces; i++) {
         face = mesh->faces[i];
-        render_triangle(buffer, NULL, transformed[face.i0], transformed[face.i1], transformed[face.i2]);
+        normal = transform_vector(&nt, normals[i]);
+        //print_vec4f(stderr, "normal", normal);
+        intensity = dot(normal, light);
+        //fprintf(stderr, "intensity %f\n", intensity);
+        if (normal.z < 0.f) {
+            //intensity = 0.8;
+            render_triangle(buffer, rgbf(intensity, intensity, intensity), transformed[face.i0], transformed[face.i1], transformed[face.i2]);
+        }
     }
-
+    free(normals);
     free(transformed);
 }
 
