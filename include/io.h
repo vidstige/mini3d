@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 
-mesh load_obj(FILE* file);
+mesh load_obj(FILE *file);
+mesh load_stl(FILE *file);
 
 #endif
