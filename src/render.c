@@ -18,9 +18,12 @@ void update_bbox(bbox3f *bbox, vec3f v) {
     bbox->max.x = fmax(bbox->max.x, v.x); bbox->max.y = fmax(bbox->max.y, v.y); bbox->max.z = fmax(bbox->max.z, v.z);
 }
 
-void pixel(uint32_t *buffer, int x, int y, uint32_t color) {
+void pixel(uint32_t *buffer, float *z_buffer, int x, int y, float z, uint32_t color) {
     if (x >= 0 && x < 320 && y >= 0 && y < 200) {
-        buffer[x + y * 320] = color;
+        if (z_buffer[x + y * 320] > z) {
+            buffer[x + y * 320] = color;
+            z_buffer[x + y * 320] = z;
+        }
     }
 }
 
@@ -46,9 +49,14 @@ bool contains_point(barycentric_t barycentric) {
     return barycentric.alpha >= 0 && barycentric.beta >= 0 && barycentric.gamma >= 0; 
 }
 
+float interpolate_barycentric(float a, float b, float c, barycentric_t barycentric) {
+    return a * barycentric.alpha + b * barycentric.beta + c * barycentric.gamma;
+}
+
 void render_triangle(uint32_t *buffer, float *z_buffer, uint32_t color, vec3f v0, vec3f v1, vec3f v2) {
     bbox3f bbox;
     int x, y;
+    float z;
     barycentric_t barycentric;
     init_bbox(&bbox);
     update_bbox(&bbox, v0);
@@ -58,7 +66,8 @@ void render_triangle(uint32_t *buffer, float *z_buffer, uint32_t color, vec3f v0
         for (x = (int)bbox.min.x; x < (int)bbox.max.x; x++) {
             barycentric = as_barycentric(v0, v1, v2, make_vec3f(x, y, 1));
             if (contains_point(barycentric)) {
-                pixel(buffer, x, y, color);
+                z = interpolate_barycentric(v0.z, v1.z, v2.z, barycentric);
+                pixel(buffer, z_buffer, x, y, z, color);
             }
         }
     }

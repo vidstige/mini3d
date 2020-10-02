@@ -101,6 +101,11 @@ void draw(uint32_t *buffer, mesh* mesh, float t) {
     vec4f light = make_vec4f(0, 0, -1, 0);
     float *z_buffer = malloc(sizeof(float) * 320 * 200);
 
+    for (i = 0; i < 320 * 200; i++) {
+        z_buffer[i] = 100.f;
+    }
+
+
     // Compute face normals
     vec4f *normals = malloc(sizeof(vec4f) * mesh->n_faces);
     for (i = 0; i < mesh->n_faces; i++) {
@@ -111,7 +116,7 @@ void draw(uint32_t *buffer, mesh* mesh, float t) {
     // compute mvp matrix
     make_identity(&mvp);
     rotate_y(&tmp, omega * t); multiply(&tmp, &mvp, &mvp);
-    make_translation(&tmp, make_vec3f(0.f, 0.f, -4.f)); multiply(&tmp, &mvp, &mv);
+    make_translation(&tmp, make_vec3f(0.f, 0.f, -3.f)); multiply(&tmp, &mvp, &mv);
     make_projection(&tmp, 90, 320.f/200.f, 0.1, 5); multiply(&tmp, &mv, &mvp);
 
     // compute normal transform
