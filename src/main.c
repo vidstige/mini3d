@@ -99,6 +99,7 @@ void draw(uint32_t *buffer, mesh* mesh, float t) {
     vec4f normal;
     vec3f *transformed = malloc(sizeof(vec3f) * mesh->n_vertices);
     vec4f light = make_vec4f(0, 0, -1, 0);
+    float *z_buffer = malloc(sizeof(float) * 320 * 200);
 
     // Compute face normals
     vec4f *normals = malloc(sizeof(vec4f) * mesh->n_faces);
@@ -135,9 +136,10 @@ void draw(uint32_t *buffer, mesh* mesh, float t) {
         //fprintf(stderr, "intensity %f\n", intensity);
         if (normal.z < 0.f) {
             //intensity = 0.8;
-            render_triangle(buffer, rgbf(intensity, intensity, intensity), transformed[face.i0], transformed[face.i1], transformed[face.i2]);
+            render_triangle(buffer, z_buffer, rgbf(intensity, intensity, intensity), transformed[face.i0], transformed[face.i1], transformed[face.i2]);
         }
     }
+    free(z_buffer);
     free(normals);
     free(transformed);
 }
