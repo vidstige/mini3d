@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include "mesh.h"
 
+#define CAPACITY_STEP 1024
+
 mesh load_obj(FILE* file)
 {
     char line[256];
-    size_t vertices_capacity = 1024, vertices_i = 0;
+    size_t vertices_capacity = CAPACITY_STEP, vertices_i = 0;
     vec3f *vertices = malloc(sizeof(vec3f) * vertices_capacity);
-    size_t faces_capacity = 1024, faces_i = 0;
+    size_t faces_capacity = CAPACITY_STEP, faces_i = 0;
     face* faces = malloc(sizeof(face) * faces_capacity);
     vec3f vertex;
     face face;
@@ -15,10 +17,22 @@ mesh load_obj(FILE* file)
         if (line[0] == '#') continue;
         
         if (sscanf(line, "v %f %f %f\n", &vertex.x, &vertex.y, &vertex.z)) {
+            // Increase buffer if needed
+            if (vertices_i >= vertices_capacity) {
+                vertices_capacity += CAPACITY_STEP;
+                vertices = realloc(vertices, sizeof(vec3f) * vertices_capacity);
+            }
             vertices[vertices_i++] = vertex;
         }
-        if (sscanf(line, "f %lu/%*d/%*d %lu/%*d/%*d %lu/%*d/%*d\n", &face.i0, &face.i1, &face.i2)) {
+        if (sscanf(line, "f %lu//%*d %lu//%*d %lu//%*d\n", &face.i0, &face.i1, &face.i2)) {
+            if (faces_i >= faces_capacity) {
+                faces_capacity += CAPACITY_STEP;
+                faces = realloc(faces, sizeof(face) * faces_capacity);
+            }
             face.i0--; face.i1--; face.i2--;            
+            if (face.i0 > vertices_i) fprintf(stderr, "%lu\n", faces_i);
+            if (face.i1 > vertices_i) fprintf(stderr, "%lu\n", faces_i);
+            if (face.i2 > vertices_i) fprintf(stderr, "%lu\n", faces_i);
             faces[faces_i++] = face;
         }
     }
@@ -77,16 +91,3 @@ mesh load_stl(FILE *file) {
 
     return out;
 }
-/*
-UINT8[80] – Header
-UINT32 – Number of triangles
-
-
-foreach triangle
-REAL32[3] – Normal vector
-REAL32[3] – Vertex 1
-REAL32[3] – Vertex 2
-REAL32[3] – Vertex 3
-UINT16 – Attribute byte count
-end
-*/

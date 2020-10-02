@@ -163,9 +163,11 @@ int main() {
     float dt = 1;
     mesh mesh;
 
-    FILE* f = fopen("meshes/cube.obj", "r");
+    //FILE* f = fopen("meshes/cube.obj", "r");
+    FILE* f = fopen("meshes/cute-darth-vader.obj", "r");
     mesh = load_obj(f);
     fclose(f);
+    fprintf(stderr, "loaded %lu, %lu", mesh.n_vertices, mesh.n_faces);
 
     initialize();
     for (t = 0; t < 2 * M_PI / 0.02; t += 1.f) {
