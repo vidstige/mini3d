@@ -24,33 +24,40 @@ void pixel(uint32_t *buffer, int x, int y, uint32_t color) {
     }
 }
 
+typedef struct { float alpha, beta, gamma; } barycentric_t;
+
 float edge_function(vec3f v0, vec3f v1, vec3f v2) {
     return (v2.x - v0.x) * (v1.y - v0.y) - (v2.y - v0.y) * (v1.x - v0.x);
 }
 
-bool contains_point(vec3f v0, vec3f v1, vec3f v2, vec3f p) {
-    float alpha, beta, gamma;
+barycentric_t as_barycentric(vec3f v0, vec3f v1, vec3f v2, vec3f p) {
+    barycentric_t out;
     float area = edge_function(v0, v1, v2);
     if (area < EPSILON) {
-        return false;
+        return out;
     }    
-    // compute barycentric coordinates
-    alpha =  edge_function(v1, v2, p);
-    beta = edge_function(v2, v0, p);
-    gamma = edge_function(v0, v1, p);
-    return alpha >= 0 && beta >= 0 && gamma >= 0; 
+    out.alpha = edge_function(v1, v2, p) / area;
+    out.beta = edge_function(v2, v0, p) / area;
+    out.gamma = edge_function(v0, v1, p) / area;
+    return out;
 }
 
-void render_triangle(uint32_t *buffer, uint32_t color, vec3f v0, vec3f v1, vec3f v2) {
+bool contains_point(barycentric_t barycentric) {
+    return barycentric.alpha >= 0 && barycentric.beta >= 0 && barycentric.gamma >= 0; 
+}
+
+void render_triangle(uint32_t *buffer, float *z_buffer, uint32_t color, vec3f v0, vec3f v1, vec3f v2) {
     bbox3f bbox;
     int x, y;
+    barycentric_t barycentric;
     init_bbox(&bbox);
     update_bbox(&bbox, v0);
     update_bbox(&bbox, v1);
     update_bbox(&bbox, v2);
     for (y = (int)bbox.min.y; y < (int)bbox.max.y; y++) {
         for (x = (int)bbox.min.x; x < (int)bbox.max.x; x++) {
-            if (contains_point(v0, v1, v2, make_vec3f(x, y, 1))) {
+            barycentric = as_barycentric(v0, v1, v2, make_vec3f(x, y, 1));
+            if (contains_point(barycentric)) {
                 pixel(buffer, x, y, color);
             }
         }
